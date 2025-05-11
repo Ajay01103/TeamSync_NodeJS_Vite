@@ -1,12 +1,16 @@
 import { DashboardSkeleton } from "@/components/skeleton-loaders/dashboard-skeleton"
 import useAuth from "@/hooks/api/use-auth"
-import { Navigate, Outlet } from "react-router-dom"
+import { Navigate, Outlet, useLocation } from "react-router-dom"
+import { isAuthRoute } from "./common/routePaths"
 
 const AuthRoute = () => {
+  const location = useLocation()
   const { data: authData, isLoading } = useAuth()
   const user = authData?.user
 
-  if (isLoading) {
+  const _isAuthRoute = isAuthRoute(location.pathname)
+
+  if (isLoading && !_isAuthRoute) {
     return <DashboardSkeleton />
   }
 
