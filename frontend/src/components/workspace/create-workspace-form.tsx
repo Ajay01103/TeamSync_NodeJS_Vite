@@ -1,6 +1,6 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
 import {
   Form,
   FormControl,
@@ -9,18 +9,31 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "../ui/textarea";
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "../ui/textarea"
+import { useNavigate } from "react-router-dom"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { createWorkspaceMutationFn } from "@/lib/api"
+import { toast } from "@/hooks/use-toast"
+import { Loader } from "lucide-react"
 
-export default function CreateWorkspaceForm() {
+export default function CreateWorkspaceForm({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate()
+
+  const queryClient = useQueryClient()
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: createWorkspaceMutationFn,
+  })
+
   const formSchema = z.object({
     name: z.string().trim().min(1, {
       message: "Workspace name is required",
     }),
     description: z.string().trim(),
-  });
+  })
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -28,11 +41,31 @@ export default function CreateWorkspaceForm() {
       name: "",
       description: "",
     },
-  });
+  })
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log(values);
-  };
+    // console.log(values);
+    if (isPending) return
+
+    mutate(values, {
+      onSuccess: (data) => {
+        queryClient.resetQueries({
+          queryKey: ["userWorkspaces"],
+        })
+
+        const workspace = data.workspace
+        onClose()
+        navigate(`/workspace/${workspace._id}`)
+      },
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        })
+      },
+    })
+  }
 
   return (
     <main className="w-full flex flex-row min-h-[590px] h-auto max-w-full">
@@ -45,8 +78,8 @@ export default function CreateWorkspaceForm() {
             Let's build a Workspace
           </h1>
           <p className="text-muted-foreground text-lg leading-tight">
-            Boost your productivity by making it easier for everyone to access
-            projects in one location.
+            Boost your productivity by making it easier for everyone to access projects in
+            one location.
           </p>
         </div>
         <Form {...form}>
@@ -83,9 +116,7 @@ export default function CreateWorkspaceForm() {
                   <FormItem>
                     <FormLabel className="dark:text-[#f1f7feb5] text-sm">
                       Workspace description
-                      <span className="text-xs font-extralight ml-2">
-                        Optional
-                      </span>
+                      <span className="text-xs font-extralight ml-2">Optional</span>
                     </FormLabel>
                     <FormControl>
                       <Textarea
@@ -95,8 +126,7 @@ export default function CreateWorkspaceForm() {
                       />
                     </FormControl>
                     <FormDescription>
-                      Get your members on board with a few words about your
-                      Workspace.
+                      Get your members on board with a few words about your Workspace.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -105,9 +135,11 @@ export default function CreateWorkspaceForm() {
             </div>
 
             <Button
+              disabled={isPending}
               className="w-full h-[40px] text-white font-semibold"
               type="submit"
             >
+              {isPending && <Loader className="animate-spin" />}
               Create Workspace
             </Button>
           </form>
@@ -119,5 +151,5 @@ export default function CreateWorkspaceForm() {
       "
       />
     </main>
-  );
+  )
 }

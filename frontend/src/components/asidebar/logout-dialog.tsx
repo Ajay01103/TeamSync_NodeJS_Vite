@@ -62,6 +62,7 @@ const LogoutDialog = (props: {
           </DialogHeader>
           <DialogFooter>
             <Button
+              disabled={isPending}
               type="button"
               onClick={handleLogout}
             >
