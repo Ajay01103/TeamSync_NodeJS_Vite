@@ -1,32 +1,32 @@
-"use client";
+"use client"
 
-import {
-  LucideIcon,
-  Settings,
-  Users,
-  CheckCircle,
-  LayoutDashboard,
-} from "lucide-react";
+import { LucideIcon, Settings, Users, CheckCircle, LayoutDashboard } from "lucide-react"
 import {
   SidebarGroup,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { Link, useLocation } from "react-router-dom";
-import useWorkspaceId from "@/hooks/use-workspace-id";
+} from "@/components/ui/sidebar"
+import { Link, useLocation } from "react-router-dom"
+import useWorkspaceId from "@/hooks/use-workspace-id"
+import { useAuthContext } from "@/context/auth-provider"
+import { Permissions } from "@/constant"
 
 type ItemType = {
-  title: string;
-  url: string;
-  icon: LucideIcon;
-};
+  title: string
+  url: string
+  icon: LucideIcon
+}
 
 export function NavMain() {
-  const workspaceId = useWorkspaceId();
-  const location = useLocation();
+  const { hasPermission } = useAuthContext()
 
-  const pathname = location.pathname;
+  const canManageSettings = hasPermission(Permissions.MANAGE_WORKSPACE_SETTINGS)
+
+  const workspaceId = useWorkspaceId()
+  const location = useLocation()
+
+  const pathname = location.pathname
 
   const items: ItemType[] = [
     {
@@ -44,20 +44,30 @@ export function NavMain() {
       url: `/workspace/${workspaceId}/members`,
       icon: Users,
     },
+    ...(canManageSettings
+      ? [
+          {
+            title: "Settings",
+            url: `/workspace/${workspaceId}/settings`,
+            icon: Settings,
+          },
+        ]
+      : []),
+  ]
 
-    {
-      title: "Settings",
-      url: `/workspace/${workspaceId}/settings`,
-      icon: Settings,
-    },
-  ];
   return (
     <SidebarGroup>
       <SidebarMenu>
         {items.map((item) => (
           <SidebarMenuItem key={item.title}>
-            <SidebarMenuButton isActive={item.url === pathname} asChild>
-              <Link to={item.url} className="!text-[15px]">
+            <SidebarMenuButton
+              isActive={item.url === pathname}
+              asChild
+            >
+              <Link
+                to={item.url}
+                className="!text-[15px]"
+              >
                 <item.icon />
                 <span>{item.title}</span>
               </Link>
@@ -66,5 +76,5 @@ export function NavMain() {
         ))}
       </SidebarMenu>
     </SidebarGroup>
-  );
+  )
 }
