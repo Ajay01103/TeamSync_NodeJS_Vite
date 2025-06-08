@@ -1,4 +1,11 @@
-import { ArrowRight, Folder, Loader, MoreHorizontal, Plus, Trash2 } from "lucide-react"
+import {
+  ArrowRight,
+  Folder,
+  Loader,
+  MoreHorizontal,
+  Plus,
+  Trash2,
+} from "lucide-react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import {
   DropdownMenu,
@@ -40,7 +47,6 @@ export function NavProjects() {
 
   const { onOpen } = useCreateProjectDialog()
   const { isMobile } = useSidebar()
-
   const { context, open, onOpenDialog, onCloseDialog } = useConfirmDialog()
 
   const [pageNumber] = useState(1)
@@ -50,11 +56,12 @@ export function NavProjects() {
     mutationFn: deleteProjectMutationFn,
   })
 
-  const { data, isPending, isFetching, isError } = useGetProjectsInWorkspaceQuery({
-    workspaceId,
-    pageSize,
-    pageNumber,
-  })
+  const { data, isPending, isFetching, isError } =
+    useGetProjectsInWorkspaceQuery({
+      workspaceId,
+      pageSize,
+      pageNumber,
+    })
 
   const projects = data?.projects || []
   const pagination = data?.pagination || ({} as PaginationType)
@@ -126,18 +133,21 @@ export function NavProjects() {
           {!isPending && projects?.length === 0 ? (
             <div className="pl-3">
               <p className="text-xs text-muted-foreground">
-                There is no projects in this Workspace yet. Projects you create will show
-                up here.
+                There is no projects in this Workspace yet. Projects you create
+                will show up here.
               </p>
-              <Button
-                variant="link"
-                type="button"
-                className="h-0 p-0 text-[13px] underline font-semibold mt-4"
-                onClick={onOpen}
-              >
-                Create a project
-                <ArrowRight />
-              </Button>
+
+              <PermissionsGuard requiredPermission={Permissions.CREATE_PROJECT}>
+                <Button
+                  variant="link"
+                  type="button"
+                  className="h-0 p-0 text-[13px] underline font-semibold mt-4"
+                  onClick={onOpen}
+                >
+                  Create a project
+                  <ArrowRight />
+                </Button>
+              </PermissionsGuard>
             </div>
           ) : (
             projects.map((item) => {
@@ -166,12 +176,16 @@ export function NavProjects() {
                       side={isMobile ? "bottom" : "right"}
                       align={isMobile ? "end" : "start"}
                     >
-                      <DropdownMenuItem onClick={() => navigate(`${projectUrl}`)}>
+                      <DropdownMenuItem
+                        onClick={() => navigate(`${projectUrl}`)}
+                      >
                         <Folder className="text-muted-foreground" />
                         <span>View Project</span>
                       </DropdownMenuItem>
 
-                      <PermissionsGuard requiredPermission={Permissions.DELETE_PROJECT}>
+                      <PermissionsGuard
+                        requiredPermission={Permissions.DELETE_PROJECT}
+                      >
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           disabled={isLoading}
@@ -205,7 +219,7 @@ export function NavProjects() {
 
       <ConfirmDialog
         isOpen={open}
-        isLoading={false}
+        isLoading={isLoading}
         onClose={onCloseDialog}
         onConfirm={handleConfirm}
         title="Delete Project"

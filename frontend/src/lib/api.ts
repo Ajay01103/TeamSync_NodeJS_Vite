@@ -7,6 +7,7 @@ import {
   AnalyticsResponseType,
   ChangeWorkspaceMemberRoleType,
   CreateProjectPayloadType,
+  CreateTaskPayloadType,
   CreateWorkspaceResponseType,
   CreateWorkspaceType,
   CurrentUserResponseType,
@@ -20,7 +21,9 @@ import {
   WorkspaceByIdResponseType,
 } from "@/types/api.type"
 
-export const loginMutationFn = async (data: loginType): Promise<LoginResponseType> => {
+export const loginMutationFn = async (
+  data: loginType
+): Promise<LoginResponseType> => {
   const response = await API.post("/auth/login", data)
 
   return response.data
@@ -34,10 +37,11 @@ export const logoutMutationFn = async () => {
   await API.post("/auth/logout")
 }
 
-export const getCurrentUserQueryFn = async (): Promise<CurrentUserResponseType> => {
-  const response = await API.get(`/user/current`)
-  return response.data
-}
+export const getCurrentUserQueryFn =
+  async (): Promise<CurrentUserResponseType> => {
+    const response = await API.get(`/user/current`)
+    return response.data
+  }
 
 //********* WORKSPACE ****************
 //************* */
@@ -87,7 +91,10 @@ export const changeWorkspaceMemberRoleMutationFn = async ({
   workspaceId,
   data,
 }: ChangeWorkspaceMemberRoleType) => {
-  const response = await API.put(`/workspace/change/member/role/${workspaceId}`, data)
+  const response = await API.put(
+    `/workspace/change/member/role/${workspaceId}`,
+    data
+  )
   return response.data
 }
 
@@ -113,7 +120,10 @@ export const createProjectMutationFn = async ({
   workspaceId,
   data,
 }: CreateProjectPayloadType): Promise<ProjectResponseType> => {
-  const response = await API.post(`/project/workspace/${workspaceId}/create`, data)
+  const response = await API.post(
+    `/project/workspace/${workspaceId}/create`,
+    data
+  )
   return response.data
 }
 
@@ -144,11 +154,21 @@ export const getProjectByIdQueryFn = async ({
   workspaceId,
   projectId,
 }: ProjectByIdPayloadType): Promise<ProjectResponseType> => {
-  const response = await API.get(`/project/${projectId}/workspace/${workspaceId}`)
+  const response = await API.get(
+    `/project/${projectId}/workspace/${workspaceId}`
+  )
   return response.data
 }
 
-export const getProjectAnalyticsQueryFn = async () => {}
+export const getProjectAnalyticsQueryFn = async ({
+  workspaceId,
+  projectId,
+}: ProjectByIdPayloadType): Promise<AnalyticsResponseType> => {
+  const response = await API.get(
+    `/project/${projectId}/workspace/${workspaceId}/analytics`
+  )
+  return response.data
+}
 
 export const deleteProjectMutationFn = async ({
   workspaceId,
@@ -163,7 +183,17 @@ export const deleteProjectMutationFn = async ({
 //*******TASKS ********************************
 //************************* */
 
-export const createTaskMutationFn = async () => {}
+export const createTaskMutationFn = async ({
+  workspaceId,
+  projectId,
+  data,
+}: CreateTaskPayloadType) => {
+  const response = await API.post(
+    `/task/project/${projectId}/workspace/${workspaceId}/create`,
+    data
+  )
+  return response.data
+}
 
 export const getAllTasksQueryFn = async () => {}
 

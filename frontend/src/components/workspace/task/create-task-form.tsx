@@ -1,8 +1,8 @@
-import { z } from "zod";
-import { format } from "date-fns";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { CalendarIcon, Loader } from "lucide-react";
+import { z } from "zod"
+import { format } from "date-fns"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import { CalendarIcon, Loader } from "lucide-react"
 import {
   Form,
   FormControl,
@@ -10,42 +10,96 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
+} from "@/components/ui/form"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/select"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "../../ui/textarea";
-import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
-import { transformOptions } from "@/lib/helper";
-import useWorkspaceId from "@/hooks/use-workspace-id";
-import { TaskPriorityEnum, TaskStatusEnum } from "@/constant";
+} from "@/components/ui/popover"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "../../ui/textarea"
+import { cn } from "@/lib/utils"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  getAvatarColor,
+  getAvatarFallbackText,
+  transformOptions,
+} from "@/lib/helper"
+import useWorkspaceId from "@/hooks/use-workspace-id"
+import { TaskPriorityEnum, TaskStatusEnum } from "@/constant"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { createTaskMutationFn } from "@/lib/api"
+import useGetProjectsInWorkspaceQuery from "@/hooks/api/use-get-projects"
+import useGetWorkspaceMembers from "@/hooks/api/use-get-workspace-members"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { toast } from "@/hooks/use-toast"
 
 export default function CreateTaskForm(props: {
-  projectId?: string;
-  onClose: () => void;
+  projectId?: string
+  onClose: () => void
 }) {
-  const { projectId, onClose } = props;
+  const { projectId, onClose } = props
 
-  const workspaceId = useWorkspaceId();
+  const queryClient = useQueryClient()
+  const workspaceId = useWorkspaceId()
 
-  const isLoading = false;
+  const { mutate, isPending } = useMutation({
+    mutationFn: createTaskMutationFn,
+  })
 
-  //const projectOptions = []
+  const { data, isLoading } = useGetProjectsInWorkspaceQuery({
+    workspaceId,
+    skip: !!projectId,
+  })
+
+  const { data: memberData } = useGetWorkspaceMembers(workspaceId)
+
+  const projects = data?.projects || []
+  const members = memberData?.members || []
+
+  //Workspace Projects
+  const projectOptions = projects?.map((project) => {
+    return {
+      label: (
+        <div className="flex items-center gap-1">
+          <span>{project.emoji}</span>
+          <span>{project.name}</span>
+        </div>
+      ),
+      value: project._id,
+    }
+  })
 
   // Workspace Memebers
-  //const membersOptions = []
+  const membersOptions = members?.map((member) => {
+    const name = member.userId?.name || "Unknown"
+    const initials = getAvatarFallbackText(name)
+    const avatarColor = getAvatarColor(name)
+
+    return {
+      label: (
+        <div className="flex items-center space-x-2">
+          <Avatar className="h-7 w-7">
+            <AvatarImage
+              src={member.userId?.profilePicture || ""}
+              alt={name}
+            />
+            <AvatarFallback className={avatarColor}>{initials}</AvatarFallback>
+          </Avatar>
+          <span>{name}</span>
+        </div>
+      ),
+      value: member.userId._id,
+    }
+  })
 
   const formSchema = z.object({
     title: z.string().trim().min(1, {
@@ -73,7 +127,7 @@ export default function CreateTaskForm(props: {
     dueDate: z.date({
       required_error: "A date of birth is required.",
     }),
-  });
+  })
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -82,18 +136,52 @@ export default function CreateTaskForm(props: {
       description: "",
       projectId: projectId ? projectId : "",
     },
-  });
+  })
 
-  const taskStatusList = Object.values(TaskStatusEnum);
-  const taskPriorityList = Object.values(TaskPriorityEnum); // ["LOW", "MEDIUM", "HIGH", "URGENT"]
+  const taskStatusList = Object.values(TaskStatusEnum)
+  const taskPriorityList = Object.values(TaskPriorityEnum) // ["LOW", "MEDIUM", "HIGH", "URGENT"]
 
-  const statusOptions = transformOptions(taskStatusList);
-  const priorityOptions = transformOptions(taskPriorityList);
+  const statusOptions = transformOptions(taskStatusList)
+  const priorityOptions = transformOptions(taskPriorityList)
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log(values, { workspaceId: workspaceId });
-    onClose();
-  };
+    // console.log(values, { workspaceId: workspaceId });
+    if (isPending) return
+    const payload = {
+      workspaceId,
+      projectId: values.projectId,
+      data: {
+        ...values,
+        dueDate: values.dueDate.toISOString(),
+      },
+    }
+
+    mutate(payload, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: ["project-analytics", projectId],
+        })
+
+        queryClient.invalidateQueries({
+          queryKey: ["all-tasks", workspaceId],
+        })
+
+        toast({
+          title: "Success",
+          description: "Task created successfully",
+          variant: "success",
+        })
+        onClose()
+      },
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        })
+      },
+    })
+  }
 
   return (
     <div className="w-full h-auto max-w-full">
@@ -110,7 +198,10 @@ export default function CreateTaskForm(props: {
           </p>
         </div>
         <Form {...form}>
-          <form className="space-y-3" onSubmit={form.handleSubmit(onSubmit)}>
+          <form
+            className="space-y-3"
+            onSubmit={form.handleSubmit(onSubmit)}
+          >
             <div>
               <FormField
                 control={form.control}
@@ -147,7 +238,11 @@ export default function CreateTaskForm(props: {
                       </span>
                     </FormLabel>
                     <FormControl>
-                      <Textarea rows={1} placeholder="Description" {...field} />
+                      <Textarea
+                        rows={1}
+                        placeholder="Description"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -180,15 +275,21 @@ export default function CreateTaskForm(props: {
                               <Loader className="w-4 h-4 place-self-center flex animate-spin" />
                             </div>
                           )}
-                          <SelectItem value="m@example.com">
-                            m@example.com
-                          </SelectItem>
-                          <SelectItem value="m@google.com">
-                            m@google.com
-                          </SelectItem>
-                          <SelectItem value="m@support.com">
-                            m@support.com
-                          </SelectItem>
+                          <div
+                            className="w-full max-h-[200px]
+                           overflow-y-auto scrollbar
+                          "
+                          >
+                            {projectOptions?.map((option) => (
+                              <SelectItem
+                                key={option.value}
+                                className="!capitalize cursor-pointer"
+                                value={option.value}
+                              >
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </div>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -217,15 +318,21 @@ export default function CreateTaskForm(props: {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="m@example.com">
-                          m@example.com
-                        </SelectItem>
-                        <SelectItem value="m@google.com">
-                          m@google.com
-                        </SelectItem>
-                        <SelectItem value="m@support.com">
-                          m@support.com
-                        </SelectItem>
+                        <div
+                          className="w-full max-h-[200px]
+                           overflow-y-auto scrollbar
+                          "
+                        >
+                          {membersOptions?.map((option) => (
+                            <SelectItem
+                              className="cursor-pointer"
+                              key={option.value}
+                              value={option.value}
+                            >
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </div>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -261,7 +368,10 @@ export default function CreateTaskForm(props: {
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
+                      <PopoverContent
+                        className="w-auto p-0"
+                        align="start"
+                      >
                         <Calendar
                           mode="single"
                           selected={field.value}
@@ -361,13 +471,14 @@ export default function CreateTaskForm(props: {
             <Button
               className="flex place-self-end  h-[40px] text-white font-semibold"
               type="submit"
+              disabled={isPending}
             >
-              <Loader className="animate-spin" />
+              {isPending && <Loader className="animate-spin" />}
               Create
             </Button>
           </form>
         </Form>
       </div>
     </div>
-  );
+  )
 }
