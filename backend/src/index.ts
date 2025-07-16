@@ -41,7 +41,18 @@ app.use(
 app.use(passport.initialize())
 app.use(passport.session())
 
-app.use(cors({ origin: config.FRONTEND_ORIGIN, credentials: true }))
+app.use(
+  cors({
+    origin: [
+      config.FRONTEND_ORIGIN,
+      "https://ajay-teamsync.vercel.app",
+      "http://localhost:3000", // for local development
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+  })
+)
 
 app.get(
   `/`,
