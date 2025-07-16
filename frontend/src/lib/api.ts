@@ -3,6 +3,8 @@ import {
   AllMembersInWorkspaceResponseType,
   AllProjectPayloadType,
   AllProjectResponseType,
+  AllTaskPayloadType,
+  AllTaskResponseType,
   AllWorkspaceResponseType,
   AnalyticsResponseType,
   ChangeWorkspaceMemberRoleType,
@@ -12,6 +14,7 @@ import {
   CreateWorkspaceType,
   CurrentUserResponseType,
   EditProjectPayloadType,
+  EditTaskPayloadType,
   EditWorkspaceType,
   LoginResponseType,
   loginType,
@@ -21,9 +24,7 @@ import {
   WorkspaceByIdResponseType,
 } from "@/types/api.type"
 
-export const loginMutationFn = async (
-  data: loginType
-): Promise<LoginResponseType> => {
+export const loginMutationFn = async (data: loginType): Promise<LoginResponseType> => {
   const response = await API.post("/auth/login", data)
 
   return response.data
@@ -37,11 +38,10 @@ export const logoutMutationFn = async () => {
   await API.post("/auth/logout")
 }
 
-export const getCurrentUserQueryFn =
-  async (): Promise<CurrentUserResponseType> => {
-    const response = await API.get(`/user/current`)
-    return response.data
-  }
+export const getCurrentUserQueryFn = async (): Promise<CurrentUserResponseType> => {
+  const response = await API.get(`/user/current`)
+  return response.data
+}
 
 //********* WORKSPACE ****************
 //************* */
@@ -91,10 +91,7 @@ export const changeWorkspaceMemberRoleMutationFn = async ({
   workspaceId,
   data,
 }: ChangeWorkspaceMemberRoleType) => {
-  const response = await API.put(
-    `/workspace/change/member/role/${workspaceId}`,
-    data
-  )
+  const response = await API.put(`/workspace/change/member/role/${workspaceId}`, data)
   return response.data
 }
 
@@ -120,10 +117,7 @@ export const createProjectMutationFn = async ({
   workspaceId,
   data,
 }: CreateProjectPayloadType): Promise<ProjectResponseType> => {
-  const response = await API.post(
-    `/project/workspace/${workspaceId}/create`,
-    data
-  )
+  const response = await API.post(`/project/workspace/${workspaceId}/create`, data)
   return response.data
 }
 
@@ -154,9 +148,7 @@ export const getProjectByIdQueryFn = async ({
   workspaceId,
   projectId,
 }: ProjectByIdPayloadType): Promise<ProjectResponseType> => {
-  const response = await API.get(
-    `/project/${projectId}/workspace/${workspaceId}`
-  )
+  const response = await API.get(`/project/${projectId}/workspace/${workspaceId}`)
   return response.data
 }
 
@@ -195,6 +187,54 @@ export const createTaskMutationFn = async ({
   return response.data
 }
 
-export const getAllTasksQueryFn = async () => {}
+export const editTaskMutationFn = async ({
+  taskId,
+  projectId,
+  workspaceId,
+  data,
+}: EditTaskPayloadType): Promise<{message: string;}> => {
+  const response = await API.put(
+    `/task/${taskId}/project/${projectId}/workspace/${workspaceId}/update/`,
+    data
+  );
+  return response.data;
+};
 
-export const deleteTaskMutationFn = async () => {}
+export const getAllTasksQueryFn = async ({
+  workspaceId,
+  keyword,
+  projectId,
+  assignedTo,
+  priority,
+  status,
+  dueDate,
+  pageNumber,
+  pageSize,
+}: AllTaskPayloadType): Promise<AllTaskResponseType> => {
+  const baseUrl = `/task/workspace/${workspaceId}/all`
+
+  const queryParams = new URLSearchParams()
+  if (keyword) queryParams.append("keyword", keyword)
+  if (projectId) queryParams.append("projectId", projectId)
+  if (assignedTo) queryParams.append("assignedTo", assignedTo)
+  if (priority) queryParams.append("priority", priority)
+  if (status) queryParams.append("status", status)
+  if (dueDate) queryParams.append("dueDate", dueDate)
+  if (pageNumber) queryParams.append("pageNumber", pageNumber?.toString())
+  if (pageSize) queryParams.append("pageSize", pageSize?.toString())
+
+  const url = queryParams.toString() ? `${baseUrl}?${queryParams}` : baseUrl
+  const response = await API.get(url)
+  return response.data
+}
+
+export const deleteTaskMutationFn = async ({
+  workspaceId,
+  taskId,
+}: {
+  workspaceId: string
+  taskId: string
+}): Promise<{ message: string }> => {
+  const response = await API.delete(`task/${taskId}/workspace/${workspaceId}/delete`)
+  return response.data
+}
