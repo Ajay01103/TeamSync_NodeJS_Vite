@@ -35,12 +35,14 @@ app.use(
     secure: config.NODE_ENV === "production",
     httpOnly: true,
     sameSite: config.NODE_ENV === "production" ? "none" : "lax",
+    domain: config.NODE_ENV === "production" ? undefined : undefined, // Remove domain restriction in production
   })
 )
 
 app.use(passport.initialize())
 app.use(passport.session())
 
+// Apply CORS before any route handlers
 app.use(
   cors({
     origin: [
@@ -50,7 +52,8 @@ app.use(
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie", "X-Requested-With"],
+    exposedHeaders: ["Set-Cookie"],
   })
 )
 
