@@ -1,7 +1,7 @@
 import "dotenv/config"
 import express, { NextFunction, Request, Response } from "express"
 import cors from "cors"
-import session from "cookie-session"
+// import session from "cookie-session"
 import { config } from "./config/app.config"
 
 import passport from "passport"
@@ -20,6 +20,7 @@ import workspaceRoutes from "./routes/workspace.route"
 import memberRoutes from "./routes/member.route"
 import ProjectRoutes from "./routes/project.route"
 import taskRoutes from "./routes/task.route"
+import { passportAuthenticateJWT } from "./config/passport.config"
 
 const app = express()
 const BASE_PATH = config.BASE_PATH
@@ -27,33 +28,25 @@ const BASE_PATH = config.BASE_PATH
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-app.use(
-  session({
-    name: "aj_session",
-    keys: [config.SESSION_SECRET],
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    secure: config.NODE_ENV === "production",
-    httpOnly: true,
-    sameSite: config.NODE_ENV === "production" ? "none" : "lax",
-    domain: config.NODE_ENV === "production" ? undefined : undefined, // Remove domain restriction in production
-  })
-)
+// app.use(
+//   session({
+//     name: "aj_session",
+//     keys: [config.SESSION_SECRET],
+//     maxAge: 7 * 24 * 60 * 60 * 1000,
+//     secure: config.NODE_ENV === "production",
+//     httpOnly: true,
+//     sameSite: "lax",
+//   })
+// )
 
 app.use(passport.initialize())
-app.use(passport.session())
+// app.use(passport.session())
 
 // Apply CORS before any route handlers
 app.use(
   cors({
-    origin: [
-      config.FRONTEND_ORIGIN,
-      "https://ajay-teamsync.vercel.app",
-      "http://localhost:3000", // for local development
-    ],
+    origin: config.FRONTEND_ORIGIN,
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cookie", "X-Requested-With"],
-    exposedHeaders: ["Set-Cookie"],
   })
 )
 
@@ -71,11 +64,11 @@ app.get(
 )
 
 app.use(`${BASE_PATH}/auth`, authRoutes)
-app.use(`${BASE_PATH}/user`, isAuthenticated, userRoutes)
-app.use(`${BASE_PATH}/workspace`, isAuthenticated, workspaceRoutes)
-app.use(`${BASE_PATH}/member`, isAuthenticated, memberRoutes)
-app.use(`${BASE_PATH}/project`, isAuthenticated, ProjectRoutes)
-app.use(`${BASE_PATH}/task`, isAuthenticated, taskRoutes)
+app.use(`${BASE_PATH}/user`, passportAuthenticateJWT, userRoutes)
+app.use(`${BASE_PATH}/workspace`, passportAuthenticateJWT, workspaceRoutes)
+app.use(`${BASE_PATH}/member`, passportAuthenticateJWT, memberRoutes)
+app.use(`${BASE_PATH}/project`, passportAuthenticateJWT, ProjectRoutes)
+app.use(`${BASE_PATH}/task`, passportAuthenticateJWT, taskRoutes)
 
 // Error handling
 app.use(errorHandler)

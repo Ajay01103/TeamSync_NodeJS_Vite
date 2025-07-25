@@ -24,11 +24,14 @@ import GoogleOauthButton from "@/components/auth/google-oauth-button"
 import { useMutation } from "@tanstack/react-query"
 import { loginMutationFn } from "@/lib/api"
 import { toast } from "@/hooks/use-toast"
+import { useStore } from "@/store"
 
 const SignIn = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const returnUrl = searchParams.get("returnUrl")
+
+  const { setAccessToken } = useStore()
 
   const { mutate, isPending } = useMutation({
     mutationFn: loginMutationFn,
@@ -55,7 +58,12 @@ const SignIn = () => {
 
     mutate(values, {
       onSuccess: (data) => {
+        const accessToken = data.access_token
         const user = data.user
+
+        setAccessToken(accessToken)
+        // setUser(user)
+
         // console.log(user)
         const decodedUrl = returnUrl ? decodeURIComponent(returnUrl) : null
         navigate(decodedUrl || `/workspace/${user.currentWorkspace}`)

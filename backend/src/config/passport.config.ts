@@ -2,11 +2,17 @@ import passport from "passport"
 import { Request } from "express"
 import { Strategy as GoogleStrategy } from "passport-google-oauth20"
 import { Strategy as LocalStrategy } from "passport-local"
+import { Strategy as JwtStrategy, ExtractJwt, StrategyOptions } from "passport-jwt"
 
 import { config } from "./app.config"
 import { NotFoundException } from "../utils/appError"
 import { ProviderEnum } from "../enums/account-provider.enum"
-import { loginOrCreateAccountService, verifyUserService } from "../services/auth.service"
+import {
+  findUserByIdService,
+  loginOrCreateAccountService,
+  verifyUserService,
+} from "../services/auth.service"
+import { signJwtToken } from "../utils/jwt"
 
 passport.use(
   new GoogleStrategy(
@@ -35,6 +41,9 @@ passport.use(
           email: email,
         })
 
+        const jwt = signJwtToken({ userId: user._id })
+        req.jwt = jwt
+
         done(null, user)
       } catch (error) {
         done(error, false)
@@ -48,7 +57,7 @@ passport.use(
     {
       usernameField: "email",
       passwordField: "password",
-      session: true,
+      session: false,
     },
     async (email, password, done) => {
       try {
@@ -61,5 +70,36 @@ passport.use(
   )
 )
 
+interface JwtPayload {
+  userId: string
+}
+
+const options: StrategyOptions = {
+  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+  secretOrKey: config.JWT_SECRET,
+  audience: ["user"],
+  algorithms: ["HS256"],
+}
+
+passport.use(
+  new JwtStrategy(options, async (payload: JwtPayload, done) => {
+    try {
+      const user = await findUserByIdService(payload.userId)
+
+      if (!user) {
+        return done(null, false)
+      }
+
+      return done(null, user)
+    } catch (error) {
+      return done(error, false)
+    }
+  })
+)
+
 passport.serializeUser((user: any, done) => done(null, user))
 passport.deserializeUser((user: any, done) => done(null, user))
+
+export const passportAuthenticateJWT = passport.authenticate("jwt", {
+  session: false,
+})

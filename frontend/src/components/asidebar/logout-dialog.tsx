@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { logoutMutationFn } from "@/lib/api"
 import { toast } from "@/hooks/use-toast"
+import { useStore } from "@/store"
 
 const LogoutDialog = (props: {
   isOpen: boolean
@@ -19,6 +20,7 @@ const LogoutDialog = (props: {
 }) => {
   const { isOpen, setIsOpen } = props
   const navigate = useNavigate()
+  const { clearAccessToken } = useStore()
 
   const queryClient = useQueryClient()
 
@@ -28,6 +30,7 @@ const LogoutDialog = (props: {
       queryClient.resetQueries({
         queryKey: ["authUser"],
       })
+      clearAccessToken()
       navigate("/")
       setIsOpen(false)
     },
